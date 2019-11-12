@@ -135,7 +135,7 @@ namespace Photon.Pun.Demo.PunBasics
             {
                 this.ProcessInputs();
 
-                if (this.Health <= 0f)
+                if (Health <= 0f)
                 {
                     GameManager.Instance.LeaveRoom();
                 }
