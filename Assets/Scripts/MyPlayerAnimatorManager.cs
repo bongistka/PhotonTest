@@ -2,7 +2,7 @@
 using System.Collections;
 using Photon.Pun;
 
-public class MyPlayerAnimatorManager : MonoBehaviourPunCallbacks
+public class MyPlayerAnimatorManager : MonoBehaviourPun
 {
     #region Private Fields
 

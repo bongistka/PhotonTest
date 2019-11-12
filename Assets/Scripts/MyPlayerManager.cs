@@ -3,13 +3,47 @@ using UnityEngine.EventSystems;
 
 using System.Collections;
 using Photon.Pun;
+using Photon.Pun.Demo.PunBasics;
 
 /// <summary>
 /// Player manager.
 /// Handles fire Input and Beams.
 /// </summary>
-public class MyPlayerManager : MonoBehaviourPunCallbacks
+public class MyPlayerManager : MonoBehaviourPunCallbacks, IPunObservable
 {
+    #region IPunObservable implementation
+
+
+    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
+    {
+        if (stream.IsWriting)
+        {
+            // We own this player: send the others our data
+            stream.SendNext(IsFiring);
+        }
+        else
+        {
+            // Network player, receive data
+            this.IsFiring = (bool)stream.ReceiveNext();
+        }
+        if (stream.IsWriting)
+        {
+            // We own this player: send the others our data
+            stream.SendNext(IsFiring);
+            stream.SendNext(Health);
+        }
+        else
+        {
+            // Network player, receive data
+            this.IsFiring = (bool)stream.ReceiveNext();
+            this.Health = (float)stream.ReceiveNext();
+        }
+    }
+
+
+    #endregion
+    [Tooltip("The local player instance. Use this to know if the local player is represented in the Scene")]
+    public static GameObject LocalPlayerInstance;
 
     [Tooltip("The current Health of our player")]
     public float Health = 1f;
@@ -72,6 +106,15 @@ public class MyPlayerManager : MonoBehaviourPunCallbacks
     /// </summary>
     void Awake()
     {
+        // #Important
+        // used in GameManager.cs: we keep track of the localPlayer instance to prevent instantiation when levels are synchronized
+        if (photonView.IsMine)
+        {
+            PlayerManager.LocalPlayerInstance = this.gameObject;
+        }
+        // #Critical
+        // we flag as don't destroy on load so that instance survives level synchronization, thus giving a seamless experience when levels load.
+        DontDestroyOnLoad(this.gameObject);
         if (beams == null)
         {
             Debug.LogError("<Color=Red><a>Missing</a></Color> Beams Reference.", this);
@@ -79,6 +122,27 @@ public class MyPlayerManager : MonoBehaviourPunCallbacks
         else
         {
             beams.SetActive(false);
+        }
+    }
+
+    /// <summary>
+    /// MonoBehaviour method called on GameObject by Unity during initialization phase.
+    /// </summary>
+    void Start()
+    {
+        CameraWork _cameraWork = this.gameObject.GetComponent<CameraWork>();
+
+
+        if (_cameraWork != null)
+        {
+            if (photonView.IsMine)
+            {
+                _cameraWork.OnStartFollowing();
+            }
+        }
+        else
+        {
+            Debug.LogError("<Color=Red><a>Missing</a></Color> CameraWork Component on playerPrefab.", this);
         }
     }
 
